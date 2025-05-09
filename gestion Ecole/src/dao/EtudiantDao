@@ -1,0 +1,123 @@
+package dao;
+
+import modele.Etudiant;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class EtudiantDao {
+
+    public Etudiant trouverParId(int id) {
+        String sql = "SELECT u.*, e.niveau, e.filiere, e.moyenne_generale, e.mention " +
+                "FROM Utilisateur u JOIN Etudiant e ON u.id = e.utilisateur_id " +
+                "WHERE u.id = ?";
+
+        try (Connection conn = SingletonConnection.getInstance();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return new Etudiant(
+                        rs.getInt("id"),
+                        rs.getString("nom"),
+                        rs.getString("prenom"),
+                        rs.getString("login"),
+                        rs.getString("password"),
+                        rs.getString("email"),
+                        rs.getString("niveau"),
+                        rs.getString("filiere"),
+                        rs.getFloat("moyenne_generale")
+                );
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public List<Object[]> obtenirNotesEtMatieres(int etudiantId) {
+        List<Object[]> resultats = new ArrayList<>();
+        String sql = "SELECT m.nom, n.type_evaluation, n.note, n.coefficient " +
+                "FROM Note n " +
+                "JOIN AffecterMatiere am ON n.inscription_id = am.id " +
+                "JOIN Matiere m ON am.matiere_id = m.id " +
+                "WHERE am.etudiant_id = ?";
+
+        try (Connection conn = SingletonConnection.getInstance();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, etudiantId);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                resultats.add(new Object[]{
+                        rs.getString("nom"),
+                        rs.getString("type_evaluation"),
+                        rs.getFloat("note"),
+                        rs.getFloat("coefficient")
+                });
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return resultats;
+    }
+
+    public List<Object[]> obtenirMatieresInscrites(int etudiantId) {
+        List<Object[]> resultats = new ArrayList<>();
+        String sql = "SELECT m.code, m.nom, m.coefficient, m.volume_horaire " +
+                "FROM AffecterMatiere am " +
+                "JOIN Matiere m ON am.matiere_id = m.id " +
+                "WHERE am.etudiant_id = ? AND am.statut = 'Validee'";
+
+        try (Connection conn = SingletonConnection.getInstance();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, etudiantId);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                resultats.add(new Object[]{
+                        rs.getString("code"),
+                        rs.getString("nom"),
+                        rs.getFloat("coefficient"),
+                        rs.getInt("volume_horaire")
+                });
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return resultats;
+    }
+
+    public List<Object[]> obtenirEnseignants(int etudiantId) {
+        List<Object[]> resultats = new ArrayList<>();
+        String sql = "SELECT DISTINCT u.nom, u.prenom, u.email, e.specialite " +
+                "FROM AffecterMatiere am " +
+                "JOIN Matiere m ON am.matiere_id = m.id " +
+                "JOIN Enseignant e ON m.enseignant_id = e.utilisateur_id " +
+                "JOIN Utilisateur u ON e.utilisateur_id = u.id " +
+                "WHERE am.etudiant_id = ?";
+
+        try (Connection conn = SingletonConnection.getInstance();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, etudiantId);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                resultats.add(new Object[]{
+                        rs.getString("nom"),
+                        rs.getString("prenom"),
+                        rs.getString("email"),
+                        rs.getString("specialite")
+                });
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return resultats;
+    }
+}
